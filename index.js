@@ -5,15 +5,28 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CASHFREE_APP_ID = 'TEST10938705a43fd5846d3fd499953850783901';
-const CASHFREE_SECRET_KEY = 'cfsk_ma_test_8301c3441f83d222242ca75e79dcaf8b_98393735';
-const CASHFREE_API_URL = 'https://sandbox.cashfree.com/pg';
+// PRODUCTION CREDENTIALS
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID || '116714870f25988ef8806680e8e8417611';
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY || 'cfsk_ma_prod_f70e048138f501475c478f80f10c9cf1_02facbc7';
+const CASHFREE_API_URL = 'https://api.cashfree.com/pg'; // PRODUCTION URL
 
 app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.json({ status: 'Cashfree API Server Running' });
+  res.json({ 
+    status: 'NS Supplements Payment Server - PRODUCTION MODE',
+    mode: 'LIVE',
+    version: '2.0'
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    mode: 'PRODUCTION',
+    cashfree: 'ACTIVE'
+  });
 });
 
 app.post('/api/create-order', async (req, res) => {
@@ -25,13 +38,13 @@ app.post('/api/create-order', async (req, res) => {
       order_amount: amount,
       order_currency: 'INR',
       customer_details: {
-        customer_id: `customer_${Date.now()}`,
+        customer_id: customerPhone,
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone
       },
       order_meta: {
-        return_url: 'https://ns-supplement.web.app/order-success?order_id={order_id}'
+        return_url: `https://ns-supplement.web.app/order-success?order_id=${orderId}`
       }
     };
 
@@ -44,10 +57,14 @@ app.post('/api/create-order', async (req, res) => {
       }
     });
 
+    console.log('Order created:', orderId, 'Amount:', amount);
     res.json(response.data);
   } catch (error) {
-    console.error('Cashfree error:', error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data || error.message });
+    console.error('Create order error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: error.response?.data?.message || error.message,
+      details: error.response?.data
+    });
   }
 });
 
@@ -64,13 +81,19 @@ app.post('/api/verify-payment', async (req, res) => {
       }
     });
 
+    console.log('Payment verified:', orderId, 'Status:', response.data.order_status);
     res.json(response.data);
   } catch (error) {
-    console.error('Verification error:', error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data || error.message });
+    console.error('Verify payment error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: error.response?.data?.message || error.message,
+      details: error.response?.data
+    });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`💳 Cashfree Mode: PRODUCTION`);
+  console.log(`🌐 API URL: ${CASHFREE_API_URL}`);
 });
